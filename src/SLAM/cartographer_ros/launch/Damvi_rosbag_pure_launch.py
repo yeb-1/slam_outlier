@@ -26,7 +26,6 @@ def generate_launch_description():
             default_value='true',
             description='Use simulation time if true'
         ),
-        
         Node(
             package='cartographer_ros',
             executable='cartographer_node',

@@ -234,6 +234,9 @@ class PoseGraph2D : public PoseGraph {
                                  const SubmapId& submap_id) const
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
+  bool IsTrajectoryInInitialLocalization(int trajectory_id) const
+      EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
   // Updates the trajectory connectivity structure with a new constraint.
   void UpdateTrajectoryConnectivity(const Constraint& constraint)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
@@ -250,6 +253,8 @@ class PoseGraph2D : public PoseGraph {
   // We globally localize a fraction of the nodes from each trajectory.
   absl::flat_hash_map<int, std::unique_ptr<common::FixedRatioSampler>>
       global_localization_samplers_ GUARDED_BY(mutex_);
+  absl::flat_hash_map<int, std::unique_ptr<common::FixedRatioSampler>>
+      initial_global_localization_samplers_ GUARDED_BY(mutex_);
 
   // Number of nodes added since last loop closure.
   int num_nodes_since_last_loop_closure_ GUARDED_BY(mutex_) = 0;

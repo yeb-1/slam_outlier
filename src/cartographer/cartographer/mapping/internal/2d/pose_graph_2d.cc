@@ -204,6 +204,11 @@ void PoseGraph2D::AddTrajectoryIfNeeded(const int trajectory_id) {
         absl::make_unique<common::FixedRatioSampler>(
             options_.global_sampling_ratio());
   }
+  if (!initial_global_localization_samplers_[trajectory_id]) {
+    initial_global_localization_samplers_[trajectory_id] =
+        absl::make_unique<common::FixedRatioSampler>(
+            options_.initial_global_sampling_ratio());
+  }
 }
 
 void PoseGraph2D::AddImuData(const int trajectory_id,
@@ -262,6 +267,7 @@ void PoseGraph2D::ComputeConstraint(const NodeId& node_id,
                                     const SubmapId& submap_id) {
   bool maybe_add_local_constraint = false;
   bool maybe_add_global_constraint = false;
+  bool use_initial_global_localization = false;
   const TrajectoryNode::Data* constant_data;
   const Submap2D* submap;
   {
@@ -274,20 +280,30 @@ void PoseGraph2D::ComputeConstraint(const NodeId& node_id,
     }
 
     const common::Time node_time = GetLatestNodeTime(node_id, submap_id);
+    use_initial_global_localization =
+        IsTrajectoryInInitialLocalization(node_id.trajectory_id);
     const common::Time last_connection_time =
         data_.trajectory_connectivity_state.LastConnectionTime(
             node_id.trajectory_id, submap_id.trajectory_id);
+    const double global_constraint_search_after_n_seconds =
+        use_initial_global_localization
+            ? options_.initial_global_constraint_search_after_n_seconds()
+            : options_.global_constraint_search_after_n_seconds();
     if (node_id.trajectory_id == submap_id.trajectory_id ||
         node_time <
             last_connection_time +
                 common::FromSeconds(
-                    options_.global_constraint_search_after_n_seconds())) {
+                    global_constraint_search_after_n_seconds)) {
       // If the node and the submap belong to the same trajectory or if there
       // has been a recent global constraint that ties that node's trajectory to
       // the submap's trajectory, it suffices to do a match constrained to a
       // local search window.
       maybe_add_local_constraint = true;
-    } else if (global_localization_samplers_[node_id.trajectory_id]->Pulse()) {
+    } else if ((use_initial_global_localization
+                    ? initial_global_localization_samplers_
+                          [node_id.trajectory_id]
+                    : global_localization_samplers_[node_id.trajectory_id])
+                   ->Pulse()) {
       maybe_add_global_constraint = true;
     }
     constant_data = data_.trajectory_nodes.at(node_id).constant_data.get();
@@ -304,8 +320,14 @@ void PoseGraph2D::ComputeConstraint(const NodeId& node_id,
     constraint_builder_.MaybeAddConstraint(
         submap_id, submap, node_id, constant_data, initial_relative_pose);
   } else if (maybe_add_global_constraint) {
+    const double global_localization_min_score =
+        use_initial_global_localization
+            ? options_.initial_global_localization_min_score()
+            : options_.constraint_builder_options()
+                  .global_localization_min_score();
     constraint_builder_.MaybeAddGlobalConstraint(submap_id, submap, node_id,
-                                                 constant_data);
+                                                 constant_data,
+                                                 global_localization_min_score);
   }
 }
 
@@ -413,6 +435,22 @@ common::Time PoseGraph2D::GetLatestNodeTime(const NodeId& node_id,
         data_.trajectory_nodes.at(last_submap_node_id).constant_data->time);
   }
   return time;
+}
+
+bool PoseGraph2D::IsTrajectoryInInitialLocalization(
+    const int trajectory_id) const {
+  bool has_other_trajectory = false;
+  for (const auto& entry : data_.trajectories_state) {
+    if (entry.first == trajectory_id) {
+      continue;
+    }
+    has_other_trajectory = true;
+    if (data_.trajectory_connectivity_state.TransitivelyConnected(
+            trajectory_id, entry.first)) {
+      return false;
+    }
+  }
+  return has_other_trajectory;
 }
 
 void PoseGraph2D::UpdateTrajectoryConnectivity(const Constraint& constraint) {

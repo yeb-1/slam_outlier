@@ -110,6 +110,22 @@ proto::PoseGraphOptions CreatePoseGraphOptions(
   options.set_global_constraint_search_after_n_seconds(
       parameter_dictionary->GetDouble(
           "global_constraint_search_after_n_seconds"));
+  options.set_initial_global_sampling_ratio(
+      parameter_dictionary->HasKey("initial_global_sampling_ratio")
+          ? parameter_dictionary->GetDouble("initial_global_sampling_ratio")
+          : options.global_sampling_ratio());
+  options.set_initial_global_constraint_search_after_n_seconds(
+      parameter_dictionary->HasKey(
+          "initial_global_constraint_search_after_n_seconds")
+          ? parameter_dictionary->GetDouble(
+                "initial_global_constraint_search_after_n_seconds")
+          : options.global_constraint_search_after_n_seconds());
+  const auto& constraint_builder_options = options.constraint_builder_options();
+  options.set_initial_global_localization_min_score(
+      parameter_dictionary->HasKey("initial_global_localization_min_score")
+          ? parameter_dictionary->GetDouble(
+                "initial_global_localization_min_score")
+          : constraint_builder_options.global_localization_min_score());
   PopulateOverlappingSubmapsTrimmerOptions2D(&options, parameter_dictionary);
   return options;
 }

@@ -15,6 +15,7 @@ def generate_launch_description():
             executable='cartographer_node',
             name='cartographer_node',
             output='screen',
+            parameters=[{'use_sim_time': True}],
             arguments = [
                 '-configuration_directory', config_dir,
                 '-configuration_basename', 'Damvi_carto_config.lua'],
@@ -31,7 +32,7 @@ def generate_launch_description():
             executable='cartographer_occupancy_grid_node',
             name='occupancy_grid_node',
             output='screen',
-            parameters=[{'resolution': 0.05}],
+            parameters=[{'use_sim_time': True, 'resolution': 0.05}],
             remappings=[
                 ('map', 'map'),
                 ('occupancy_grid', 'map'),
@@ -43,5 +44,6 @@ def generate_launch_description():
             executable='trajectory_to_odom',
             name='trajectory_to_odom',
             output='screen',
+            parameters=[{'use_sim_time': True}],
         )
     ])
