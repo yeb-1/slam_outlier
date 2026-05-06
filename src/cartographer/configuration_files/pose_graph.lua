@@ -26,6 +26,8 @@ POSE_GRAPH = {
       linear_search_window = 7.,
       angular_search_window = math.rad(30.),
       branch_and_bound_depth = 7,
+      log_score_distribution_to_csv = false,
+      score_distribution_csv_path = "",
     },
     ceres_scan_matcher = {
       occupied_space_weight = 20.,

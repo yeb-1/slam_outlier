@@ -1,6 +1,10 @@
 include "map_builder.lua"
 include "trajectory_builder.lua"
 
+local fast_correlative_score_distribution_csv_path =
+    os.getenv("FAST_CORRELATIVE_SCORE_DISTRIBUTION_CSV_PATH") or
+    "/home/rcv/SLAM_outlier-filter/global_constraint_score_distributions/fast_correlative_score_distribution.csv"
+
 options = {
   map_builder = MAP_BUILDER,
   trajectory_builder = TRAJECTORY_BUILDER,
@@ -66,6 +70,9 @@ POSE_GRAPH.constraint_builder.max_constraint_distance = 25.0
 
 POSE_GRAPH.constraint_builder.fast_correlative_scan_matcher.linear_search_window = 2.0
 POSE_GRAPH.constraint_builder.fast_correlative_scan_matcher.angular_search_window = math.rad(20.0)
+POSE_GRAPH.constraint_builder.fast_correlative_scan_matcher.log_score_distribution_to_csv = true
+POSE_GRAPH.constraint_builder.fast_correlative_scan_matcher.score_distribution_csv_path =
+    fast_correlative_score_distribution_csv_path
 
 -- Loop closure improvements
 POSE_GRAPH.constraint_builder.loop_closure_translation_weight = 1000.0
